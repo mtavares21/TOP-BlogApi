@@ -16,6 +16,7 @@ const passportJWT = require("passport-jwt");
 const JWTStrategy = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
 const jwt = require("jsonwebtoken");
+const session = require("express-session");
 //Allow cache
 const apicache = require("apicache");
 const cors = require("cors");
@@ -43,6 +44,14 @@ const commentsRouter = require("./routes/comments");
 
 const app = express();
 
+app.use(
+  session({
+    secret: process.env.JWT,
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
 app.use(helmet());
 app.use(compression()); //Compress all routes
 
@@ -54,7 +63,7 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
 app.use(passport.initialize());
-
+app.use(passport.session());
 // Setting up the LocalStrategy
 passport.use(
   new LocalStrategy((username, password, done) => {
@@ -111,7 +120,7 @@ passport.use(
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.JWT));
 app.use(express.static(path.join(__dirname, "public")));
 
 let cache = apicache.middleware;
