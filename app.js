@@ -21,7 +21,8 @@ const apicache = require("apicache");
 const cors = require("cors");
 const methodOverride = require("method-override");
 // Production
-var compression = require("compression");
+const compression = require("compression");
+const helmet = require("helmet");
 
 //Set up default mongoose connection
 const mongoDB = process.env.MONGO_URI;
@@ -42,6 +43,7 @@ const commentsRouter = require("./routes/comments");
 
 const app = express();
 
+app.use(helmet());
 app.use(compression()); //Compress all routes
 
 app.options("*", cors()); // include before other routes
