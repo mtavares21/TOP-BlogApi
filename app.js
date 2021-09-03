@@ -16,6 +16,12 @@ const passportJWT = require("passport-jwt");
 const JWTStrategy = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
 const jwt = require("jsonwebtoken");
+//Allow cache
+const apicache = require("apicache");
+const cors = require("cors");
+const methodOverride = require("method-override");
+// Production
+var compression = require("compression");
 
 //Set up default mongoose connection
 const mongoDB = process.env.MONGO_URI;
@@ -32,8 +38,14 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
 const postsRouter = require("./routes/posts");
 const usersRouter = require("./routes/users");
+const commentsRouter = require("./routes/comments");
 
 const app = express();
+
+app.use(compression()); //Compress all routes
+
+app.options("*", cors()); // include before other routes
+app.use(cors());
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -94,23 +106,22 @@ passport.use(
   )
 );
 
-app.use(function (req, res, next) {
-  res.locals.currentUser = req.user;
-  next();
-});
-
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+let cache = apicache.middleware;
+//app.use(cache("5 minutes"));
+
 app.use(
-  "/posts",
+  "/v1/posts",
   passport.authenticate("jwt", { session: false }),
   postsRouter
 );
-app.use("/users", usersRouter);
+app.use("/v1/comments", passport.authenticate("local"), commentsRouter);
+app.use("/v1/users", usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

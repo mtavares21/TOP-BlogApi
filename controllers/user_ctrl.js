@@ -45,6 +45,7 @@ exports.createUser = [
         const user = new User({
           username: req.body.username,
           password: hashedPassword,
+          allow: req.body.username === process.env.ADMIN ? "WRITE" : "READ",
         });
 
         user.save(function (err) {
@@ -59,23 +60,41 @@ exports.createUser = [
 ];
 
 exports.logIn = function (req, res, next) {
-  passport.authenticate("local", { session: false }, (err, user, info) => {
-    if (err || !user) {
-      return res.status(400).json({
-        message: "Something is not right",
-        user: { user_id: user._id, user_name: user.name },
-      });
-    }
-
-    req.login(user, { session: false }, (err) => {
-      if (err) {
-        res.send(err);
+  passport.authenticate(
+    "local",
+    {
+      successRedirect: "/",
+      failureRedirect: "/",
+    },
+    (err, user, info) => {
+      if (err || !user) {
+        return res.status(400).json({
+          message: "Something is not right",
+        });
       }
 
-      // generate a signed son web token with the contents of user object and return it in the response
+      req.login(user, { session: true }, (err) => {
+        if (err) {
+          res.status(404).json(err);
+        }
 
-      const token = jwt.sign(JSON.stringify(user), process.env.JWT);
-      return res.json({ user_id: user._id, user_name: user.username, token });
-    });
-  })(req, res);
+        // generate json web token with the contents of user object and return it in the response
+        if (user.allow === "WRITE") {
+          const token = jwt.sign(JSON.stringify(user), process.env.JWT);
+          return res.status(200).json({
+            user_id: user._id,
+            username: user.username,
+            allow: user.allow,
+            token,
+          });
+        } else {
+          return res.status(200).json({
+            user_id: user._id,
+            username: user.username,
+            allow: user.allow,
+          });
+        }
+      });
+    }
+  )(req, res);
 };

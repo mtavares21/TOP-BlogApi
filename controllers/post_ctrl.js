@@ -1,18 +1,25 @@
 const Post = require("../models/posts");
 const { body, validationResult } = require("express-validator");
 const he = require("he");
+const debug = require("debug")("post_ctrl");
+var mongoose = require("mongoose");
 
 exports.getAllPosts = function (req, res, next) {
-  Post.find({}).exec((err, results) => {
-    if (err) {
-      return next(err);
-    }
-    const decodedResults = results.map((post) => {
-      post.title = he.decode(post.title);
-      post.text = he.decode(post.text);
+  debug(!!req.query.published);
+  // prettier-ignore
+  Post.find(req.query.published==undefined ? {} : {"isPublished": true}) 
+    .sort({ updatedAt: "desc" })
+    .limit(!!req.query.limit ? Number(req.query.limit) : null)
+    .exec((err, results) => {
+      if (err) {
+        return next(err);
+      }
+      const decodedResults = results.map((post) => {
+        post.title = he.decode(post.title);
+        post.text = he.decode(post.text);
+      });
+      return res.json(results);
     });
-    return res.json(JSON.stringify(results));
-  });
 };
 
 exports.createPost = [
@@ -24,7 +31,7 @@ exports.createPost = [
   body("text")
     .trim()
     .escape()
-    .isLength({ min: 1, max: 500 })
+    .isLength({ min: 1, max: 5000 })
     .withMessage("Invalid text"),
   body("isPublished").trim().escape().isBoolean(),
   function (req, res, next) {
@@ -36,14 +43,14 @@ exports.createPost = [
       title: req.body.title,
       text: req.body.text,
       author: req.user,
-      isPublished: req.body.published,
+      isPublished: req.body.isPublished,
     });
 
     post.save((err) => {
       if (err) {
         return res.status(503).json("Failed to save post to database");
       }
-      res.status(200).json("New post created");
+      return res.status(200).json("New post created");
     });
   },
 ];
@@ -53,7 +60,61 @@ exports.getPostById = function (req, res, next) {
     if (err) {
       return res.status(404).json(err);
     }
-
-    res.status(200).json(results);
+    return res.status(200).json(results);
   });
 };
+
+exports.deletePost = function (req, res, next) {
+  Post.findByIdAndRemove(req.params.id).exec((err, results) => {
+    if (err) {
+      return res.status(404).json(err);
+    }
+    return res.status(200).json(results);
+  });
+};
+
+exports.updatePost = [
+  body("title")
+    .trim()
+    .escape()
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Invalid title"),
+  body("text")
+    .trim()
+    .escape()
+    .isLength({ min: 1, max: 500 })
+    .withMessage("Invalid text"),
+  body("isPublished").trim().escape().isBoolean(),
+
+  function (req, res, next) {
+    debug(String(req.params.id));
+    Post.findById(req.params.id).exec((err, results) => {
+      if (err) {
+        return next(err);
+      }
+      if (!!results.length) {
+        return res.status(404).json("Can't find post in database.");
+      } else {
+        debug(results);
+        const updatedPost = {
+          title: req.body.title || results.title,
+          text: req.body.text || results.text,
+          author: req.body.author || results.author,
+          isPublished: req.body.isPublished || results.isPublished,
+        };
+        Post.findByIdAndUpdate(
+          req.params.id,
+          updatedPost,
+          {},
+          (err, results) => {
+            if (err) {
+              return res.status(404).json(err);
+            }
+
+            return res.status(200).json(updatedPost);
+          }
+        );
+      }
+    });
+  },
+];

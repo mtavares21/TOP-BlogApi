@@ -5,14 +5,14 @@ const postCtrl = require("../controllers/post_ctrl");
 // GET post
 router.get("/:id", postCtrl.getPostById);
 
-// CREATE post
-router.post("/", postCtrl.createPost);
-
 // DELETE post
-router.delete("/", postCtrl.deletePost);
+router.delete("/:id", postCtrl.deletePost);
 
 // UPDATE post
-router.put("/", postCtrl.updatePost);
+router.put("/:id", postCtrl.updatePost);
+
+// CREATE post
+router.post("/", postCtrl.createPost);
 
 //GET all posts
 router.get("/", postCtrl.getAllPosts);
