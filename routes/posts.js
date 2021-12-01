@@ -14,7 +14,4 @@ router.put("/:id", postCtrl.updatePost);
 // CREATE post
 router.post("/", postCtrl.createPost);
 
-//GET all posts
-router.get("/", postCtrl.getAllPosts);
-
 module.exports = router;

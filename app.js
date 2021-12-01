@@ -38,6 +38,7 @@ const db = mongoose.connection;
 //Bind connection to error event (to get notification of connection errors)
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
+const allPostsRouter = require("./routes/get_posts")
 const postsRouter = require("./routes/posts");
 const usersRouter = require("./routes/users");
 const commentsRouter = require("./routes/comments");
@@ -135,27 +136,21 @@ passport.use(
   )
 );
 
+app.use("/v1/users", usersRouter);
+
 app.use(
   "/v1/posts",
   passport.authenticate("jwt", { session: false }),
   postsRouter
 );
 
-function isAuthenticated(req, res, next) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json("User is not authenticated");
-  } else {
-    return next();
-  }
-}
+app.use("/v1/allPosts", allPostsRouter);
 
 app.use(
   "/v1/comments",
   passport.authenticate("jwt", { session: false }),
   commentsRouter
 );
-
-app.use("/v1/users", usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
