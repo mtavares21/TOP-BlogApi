@@ -12,6 +12,7 @@ router.put("/:id", commentCtrl.updateComment);
 router.post("/", commentCtrl.createComment);
 
 //GET by post comments
+//router.get("/", commentCtrl.getComments);
 router.get("/", commentCtrl.getComments);
 
 module.exports = router;

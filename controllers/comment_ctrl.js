@@ -1,7 +1,7 @@
 const Comment = require("../models/comments");
 const { body, validationResult } = require("express-validator");
 const he = require("he");
-const debug = require("debug")("Comment_ctrl");
+const debug = require("debug")("comment_ctrl");
 var mongoose = require("mongoose");
 
 exports.getComments = function (req, res, next) {
@@ -55,23 +55,28 @@ exports.createComment = [
   },
 ];
 
-exports.getCommentById = function (req, res, next) {
-  Comment.findById(req.params.id).exec((err, results) => {
-    if (err) {
-      return res.status(404).json(err);
-    }
-    return res.status(200).json(results);
-  });
-};
-
 exports.deleteComment = function (req, res, next) {
-  Comment.findByIdAndRemove(req.params.id).exec((err, results) => {
-    if (err) {
-      return res.status(404).json(err);
-    }
-    return res.status(200).json(results);
-  });
-};
+  Comment
+    .findById(req.params.id)
+    .populate("author")
+    .exec((err, results) => {
+      if (err || !results) {
+        res.status(404).json(err);
+        return next();
+      }
+      if (results.author.id !== req.user.id && req.user.allow !== "WRITE"){
+        return res.status(403).json("User does not have permission do delete this comment.")
+      }
+      Comment
+      .findByIdAndRemove(req.params.id)
+      .exec( (err, results) => {
+        if(err){
+          return res.status(404).json(err);
+        }
+        return res.status(200).json(`Comment with id = ${req.params.id} was deleted.`)
+      })
+    });
+  };
 
 exports.updateComment = [
   body("text")

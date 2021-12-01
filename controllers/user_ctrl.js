@@ -8,7 +8,10 @@ const passportJWT = require("passport-jwt");
 const jwt = require("jsonwebtoken");
 
 exports.createUser = [
-  body("username").escape().isEmail().trim(),
+  body("username")
+    .escape()
+    .isEmail()
+    .trim(),
   // password must be at least 5 chars long
   body("password")
     .escape()
@@ -60,41 +63,45 @@ exports.createUser = [
 ];
 
 exports.logIn = function (req, res, next) {
-  passport.authenticate(
-    "local",
-    {
-      successRedirect: "/",
-      failureRedirect: "/",
-    },
-    (err, user, info) => {
-      if (err || !user) {
-        return res.status(400).json({
-          message: "Something is not right",
-        });
-      }
-
-      req.login(user, { session: true }, (err) => {
-        if (err) {
-          res.status(404).json(err);
-        }
-
-        // generate json web token with the contents of user object and return it in the response
-        if (user.allow === "WRITE") {
-          const token = jwt.sign(JSON.stringify(user), process.env.JWT);
-          return res.status(200).json({
-            user_id: user._id,
-            username: user.username,
-            allow: user.allow,
-            token,
-          });
-        } else {
-          return res.status(200).json({
-            user_id: user._id,
-            username: user.username,
-            allow: user.allow,
-          });
-        }
+  passport.authenticate("local", (err, user, info) => {
+    if (err || !user) {
+      return res.status(400).json({
+        message: "Something is not right",
       });
     }
-  )(req, res);
+
+    req.login(user, (err) => {
+      if (err) {
+        res.status(404).json(err);
+      }
+      // generate json web token with the contents of user object and return it in the response
+        const token = jwt.sign(JSON.stringify(user), process.env.JWT);
+        return res.status(200).json({
+          user_id: user._id,
+          username: user.username,
+          allow: user.allow,
+          token,
+        });
+    });
+  })(req, res, next);
+};
+
+exports.user = function (req, res, next) {
+  if (req.user) {
+    res.status(200).json(req.user);
+    next();
+  } else {
+    res.status(401).json("No user in session");
+    next();
+  }
+};
+
+exports.logOut = function (req, res, next) {
+  if (req.user) {
+    req.logout();
+    return res.status(200).json("User logged out");
+  } else {
+    return res.status(401).json("No user in session.");
+  }
+  return next();
 };

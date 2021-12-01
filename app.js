@@ -41,12 +41,23 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 const postsRouter = require("./routes/posts");
 const usersRouter = require("./routes/users");
 const commentsRouter = require("./routes/comments");
+const { authenticate } = require("passport");
 
 const app = express();
+
+app.use(logger("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser(process.env.JWT));
+app.use(express.static(path.join(__dirname, "public")));
+
+let cache = apicache.middleware;
+//app.use(cache("5 minutes"));
 
 app.use(
   session({
     secret: process.env.JWT,
+    cookie: {},
     resave: false,
     saveUninitialized: true,
   })
@@ -56,7 +67,13 @@ app.use(helmet());
 app.use(compression()); //Compress all routes
 
 app.options("*", cors()); // include before other routes
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    credentials: true,
+    preflightContinue: true,
+  })
+);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -64,6 +81,7 @@ app.set("view engine", "pug");
 
 app.use(passport.initialize());
 app.use(passport.session());
+
 // Setting up the LocalStrategy
 passport.use(
   new LocalStrategy((username, password, done) => {
@@ -117,21 +135,26 @@ passport.use(
   )
 );
 
-app.use(logger("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser(process.env.JWT));
-app.use(express.static(path.join(__dirname, "public")));
-
-let cache = apicache.middleware;
-//app.use(cache("5 minutes"));
-
 app.use(
   "/v1/posts",
   passport.authenticate("jwt", { session: false }),
   postsRouter
 );
-app.use("/v1/comments", passport.authenticate("local"), commentsRouter);
+
+function isAuthenticated(req, res, next) {
+  if (!req.isAuthenticated()) {
+    res.status(401).json("User is not authenticated");
+  } else {
+    return next();
+  }
+}
+
+app.use(
+  "/v1/comments",
+  passport.authenticate("jwt", { session: false }),
+  commentsRouter
+);
+
 app.use("/v1/users", usersRouter);
 
 // catch 404 and forward to error handler
