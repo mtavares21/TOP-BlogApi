@@ -6,7 +6,7 @@ var mongoose = require("mongoose");
 exports.getAllPosts = function (req, res, next) {
   debug(!!req.query.published);
   // prettier-ignore
-  Post.find(req.query.published==undefined ? {} : {"isPublished": true}) 
+  Post.find({}) 
 	  .sort({ updatedAt: "desc" })
 	  .limit(!!req.query.limit ? Number(req.query.limit) : null)
 	  .exec((err, results) => {
