@@ -45,15 +45,19 @@ const commentsRouter = require("./routes/comments");
 const { authenticate } = require("passport");
 
 const app = express();
+const corsOptions = {
+  origin: ["https://mtavares21.github.io/TOP-Blog_adm/", "https://mtavares21.github.io/TOP-BlogPublic/"],
+  credentials: true,
+  preflightContinue: true,
+};
+let cache = apicache.middleware;
+//app.use(cache("5 minutes"));
 
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.JWT));
 app.use(express.static(path.join(__dirname, "public")));
-
-let cache = apicache.middleware;
-//app.use(cache("5 minutes"));
 
 app.use(
   session({
@@ -66,14 +70,7 @@ app.use(
 
 app.use(helmet());
 app.use(compression()); //Compress all routes
-
-app.use(
-  cors({
-    origin: ["https://mtavares21.github.io/TOP-Blog_adm/", "https://mtavares21.github.io/TOP-BlogPublic/"],
-    credentials: true,
-    preflightContinue: true,
-  })
-);
+app.use(cors());
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
