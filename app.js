@@ -69,7 +69,7 @@ app.use(compression()); //Compress all routes
 
 app.use(
   cors({
-    origin: () => ["https://mtavares21.github.io/TOP-Blog_adm/", "https://mtavares21.github.io/TOP-BlogPublic/"],
+    origin: ["https://mtavares21.github.io/TOP-Blog_adm/", "https://mtavares21.github.io/TOP-BlogPublic/"],
     credentials: true,
     preflightContinue: true,
   })
