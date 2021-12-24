@@ -67,10 +67,9 @@ app.use(
 app.use(helmet());
 app.use(compression()); //Compress all routes
 
-app.options("*", cors()); // include before other routes
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://mtavares21.github.io/TOP-Blog_adm/", "https://mtavares21.github.io/TOP-BlogPublic/"],
+    origin: () => ["https://mtavares21.github.io/TOP-Blog_adm/", "https://mtavares21.github.io/TOP-BlogPublic/"],
     credentials: true,
     preflightContinue: true,
   })
